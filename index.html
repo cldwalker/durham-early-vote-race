@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Durham Early Vote Race</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Durham County · Early voting</p>
+      <h1>The Early Vote Race</h1>
+      <p class="sub" id="subtitle"></p>
+    </header>
+
+    <section class="matchup" id="matchup" aria-label="Choose the years that race"></section>
+
+    <section class="board" aria-label="Race scoreboard">
+      <div class="day-chip">
+        <span class="day-label">Day</span>
+        <span class="day-num" id="day">–</span>
+        <span class="day-of" id="day-of"></span>
+      </div>
+      <div class="cards" id="cards"></div>
+      <p class="lead" id="lead">Press start to begin</p>
+    </section>
+
+    <section class="scene" id="scene" aria-label="Race track">
+      <div class="sky">
+        <span class="sun"></span>
+        <span class="cloud c1"></span>
+        <span class="cloud c2"></span>
+        <span class="cloud c3"></span>
+        <div class="sign start-sign" id="start-sign"><span>START</span></div>
+        <div class="sign finish-sign" id="finish-sign"><span>FINISH</span></div>
+      </div>
+      <div class="grass"></div>
+      <div class="road" id="road">
+        <div class="line start-line" id="start-line"></div>
+        <div class="line finish-line" id="finish-line"></div>
+      </div>
+      <div class="grass bottom"></div>
+      <div class="overlay" id="overlay">
+        <button class="start-btn" id="start-btn" type="button">
+          <span class="go-icon" aria-hidden="true">▶</span> Start the race
+        </button>
+      </div>
+      <div class="countdown" id="countdown" hidden></div>
+    </section>
+
+    <section class="result" id="result" hidden aria-live="polite">
+      <p class="result-title" id="result-title"></p>
+      <p class="result-sub" id="result-sub"></p>
+      <button class="again-btn" id="again-btn" type="button">↻ Race again</button>
+    </section>
+
+    <p class="note" id="note"></p>
+  </main>
+
+  <dialog class="cheer" id="cheer" aria-labelledby="cheer-title">
+    <div class="cheer-card">
+      <button class="cheer-close" id="cheer-close" type="button" aria-label="Close and keep racing">×</button>
+      <div class="cheer-icon" aria-hidden="true">📣</div>
+      <p class="cheer-title" id="cheer-title"></p>
+      <p class="cheer-intro">Here's what a fellow Durhamite wants you to know:</p>
+      <blockquote class="cheer-msg" id="cheer-msg" aria-live="polite"></blockquote>
+      <div class="cheer-actions">
+        <button class="cheer-next" id="cheer-next" type="button">Show another</button>
+        <button class="cheer-done" id="cheer-done" type="button">Keep racing ▶</button>
+      </div>
+    </div>
+  </dialog>
+  <script src="dist/bundle.js"></script>
+</body>
+</html>

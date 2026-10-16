@@ -1,0 +1,15 @@
+{
+  "name": "durham-early-votes",
+  "private": true,
+  "description": "Animated race comparing early vote counts between two years",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=iife --target=es2019 --loader:.csv=text --outfile=dist/bundle.js",
+    "watch": "npm run build -- --watch"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
