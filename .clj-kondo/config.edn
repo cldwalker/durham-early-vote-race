@@ -1,0 +1,5 @@
+{:linters
+ {;; warning on assoc! isn't helpful
+  :unused-value {:level :off}
+  ;; Turn off helpful 'Expected: array, received: vector'
+  :type-mismatch {:level :off}}}

@@ -1,0 +1,5 @@
+/node_modules
+/dist
+/out
+/.lsp
+/.clj-kondo/.cache
