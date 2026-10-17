@@ -356,6 +356,7 @@
     (set-text! "cheer-title" (str "Will " (:name chaser) " beat out " (:name other) "? It's up to us!"))
     (set! phrase-index -1)
     (show-phrase)
+    (set! (.-open ($ "cheer-say")) false)
     (.remove (.-classList cheer) "closing")
     (.showModal cheer)
     (.focus ($ "cheer-next"))))
