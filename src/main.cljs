@@ -4,7 +4,8 @@
             ["../voter-phrases.csv$default" :as phrases-csv]
             [curve :refer [monotone-curve]]
             [data :refer [parse-counts parse-phrases]]
-            [runner :refer [looks viewbox create-runner run-pose celebrate-pose]]))
+            [runner :refer [looks viewbox create-runner run-pose celebrate-pose]]
+            [translate]))
 
 (def race-ms 10000)
 (def unit "ballots")
@@ -23,7 +24,19 @@
 (def number-format (js/Intl.NumberFormat. "en-US"))
 (defn- fmt [n] (.format number-format (js/Math.round n)))
 (defn- clamp [v lo hi] (min hi (max lo v)))
-(defn- set-text! [id text] (set! (.-textContent ($ id)) text))
+(defn- put!
+  "Sets `node`'s text, or its HTML when `html?`, only when it changed. Rewriting
+  unchanged text every frame would make a translated page revert and re-translate."
+  [node text html?]
+  (when-not (identical? (aget node "_shown") text)
+    (aset node "_shown" text)
+    (if html? (set! (.-innerHTML node) text) (set! (.-textContent node) text))))
+(defn- set-text! [id text] (put! ($ id) text false))
+(defn- put-num!
+  "Shows `text` through a `data-n` attribute that CSS displays. Changing text
+  every frame would stop Google Translate from translating anything else."
+  [node text]
+  (.setAttribute node "data-n" text))
 (defn- el [tag class text]
   (let [node (js/document.createElement tag)]
     (set! (.-className node) class)
@@ -52,7 +65,7 @@
 (def clip-url "https://www.youtube-nocookie.com/embed/ukmibZfZTb8?start=241&rel=0")
 (def reduced-motion (js/matchMedia "(prefers-reduced-motion: reduce)"))
 
-(set-text! "subtitle" "Pick two years of early voting and see which year wins the ballot race.")
+(set-text! "subtitle" "Pick two years of early voting and see which year wins the ballot race!")
 
 ;; Indexes into `years` of the year running in each lane
 (def picked
@@ -125,14 +138,14 @@
         lane (el "div" "lane" "")
         card (el "div" "card" "")]
     (.setProperty (.-style lane) "--c" (:shirt look))
-    (set! (.-innerHTML lane) (str #html [:<> [:div.bubble [:b name] [:span "0"]] [:div.runner]]))
+    (set! (.-innerHTML lane) (str #html [:<> [:div.bubble.notranslate [:b name] [:span.n {:data-n "0"}]] [:div.runner]]))
     (.append (.querySelector lane ".runner") (:el fig))
     (.append road lane)
     (.setProperty (.-style card) "--c" (:shirt look))
     (set! (.-innerHTML card)
           (str #html [:<>
                       [:div.card-top [:span.swatch] [:span.card-name name] [:span.card-day]]
-                      [:div.card-total [:span.num "0"] " " [:span.card-unit unit]]
+                      [:div.card-total [:span.num.n.notranslate {:data-n "0"}] [:span.card-unit unit]]
                       [:div.bar [:i]]]))
     (.append ($ "cards") card)
     {:name name :look look :fig fig :card card :complete complete
@@ -217,7 +230,7 @@
   (reset)
   (set! (.-hidden overlay) false)
   (set! (.-hidden countdown-el) true)
-  (set! (.-innerHTML ($ "lead")) start-lead))
+  (put! ($ "lead") start-lead true))
 
 (defn- start-countdown []
   (reset)
@@ -308,8 +321,8 @@
   (let [text (fmt cum)]
     (when-not (identical? text (:shown r))
       (assoc! r :shown text)
-      (set! (.-textContent (:bubble-total r)) text)
-      (set! (.-textContent (:card-total r)) text)))
+      (put-num! (:bubble-total r) text)
+      (put-num! (:card-total r) text)))
   (set! (.. (:bar r) -style -width) (str (* (/ cum best) 100) "%"))
   ;; Keep the label above the runner's head but inside the track
   (let [bw (.-offsetWidth bubble)
@@ -327,17 +340,22 @@
          (if complete (str " of " vote-days) " so far"))))
 
 (defn- render-board [k]
-  (doseq [r runners] (set! (.-textContent (:card-day r)) (day-label r k)))
+  (doseq [r runners] (put! (:card-day r) (day-label r k) false))
   (let [ranked (.sort (.slice runners) #(- (:cum %2) (:cum %1)))
         first-r (aget ranked 0) second-r (aget ranked 1)]
     (doseq [r runners]
       (.toggle (.-classList (:card r)) "leading" (and (not= mode :idle) (identical? r first-r) (pos? (:cum r)))))
     (when (not= mode :idle)
       (let [gap (if second-r (- (:cum first-r) (:cum second-r)) 0)]
-        (set-text! "lead" (cond (= mode :countdown) "On your marks…"
-                                (= mode :finished) final-lead
-                                (zero? (js/Math.round gap)) "Neck and neck!"
-                                :else (str (:name first-r) " leads by " (fmt gap) " " unit)))))))
+        (if (or (= mode :countdown) (= mode :finished) (zero? (js/Math.round gap)))
+          (set-text! "lead" (cond (= mode :countdown) "On your marks…"
+                                  (= mode :finished) final-lead
+                                  :else "Neck and neck!"))
+          ;; Only the notranslate gap changes each frame, so a translated
+          ;; sentence stays translated
+          (let [lead ($ "lead")]
+            (put! lead (str #html [:<> (:name first-r) " leads by" [:span.gap.n.notranslate] unit]) true)
+            (put-num! (.querySelector lead ".gap") (fmt gap))))))))
 
 (defn- show-phrase []
   (when (pos? (count phrases))
@@ -433,3 +451,4 @@
 (build-race)
 (when (some? skip-to) (skip-ahead (if (js/isNaN skip-to) 0 (js/Number skip-to))))
 (js/requestAnimationFrame frame)
+(translate/init ($ "lang") ($ "lang-note"))

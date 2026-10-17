@@ -25,9 +25,9 @@ cljs code should lint with [clj-kondo](https://github.com/clj-kondo/clj-kondo) -
 
 I'm not looking for major contributions as this is mostly done. Contributions like more early voting links, adding your line to voter-phrases.csv and some cool art are welcome.
 
-## AI Disclaimer
+## LLM Disclaimer
 
-This webpage was largely built by Claude. I just did the "boring" parts like play with the idea and UX, get relevant data and links, write or review all visible text, etc.
+This webpage was largely built by LLMs. I just did the "boring" parts like play with the idea and UX, get relevant data and links, write or review all visible text, etc.
 
 ## LICENSE
 
