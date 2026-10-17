@@ -9,18 +9,26 @@
 <body>
   <main class="page">
     <header class="hero">
+      <div class="lang-bar notranslate" translate="no">
+        <span class="lang-note" id="lang-note" role="status"></span>
+        <button class="lang" id="lang" type="button" role="switch" aria-checked="false" aria-label="Español / Spanish" title="Traducir al español (Google Translate)">
+          <span>EN</span><span>ES</span>
+        </button>
+      </div>
       <h1>Bull City's Early Vote Race</h1>
       <p class="sub" id="subtitle"></p>
     </header>
 
-    <section class="matchup" id="matchup" aria-label="Choose the years that race"></section>
+    <section class="matchup" id="matchup" aria-labelledby="matchup-title"><h2 class="sr-only" id="matchup-title">Choose the years that race</h2></section>
 
-    <section class="board" aria-label="Race scoreboard">
+    <section class="board" aria-labelledby="board-title">
+      <h2 class="sr-only" id="board-title">Race scoreboard</h2>
       <div class="cards" id="cards"></div>
       <p class="lead" id="lead"></p>
     </section>
 
-    <section class="scene" id="scene" aria-label="Race track">
+    <section class="scene" id="scene" aria-labelledby="scene-title">
+      <h2 class="sr-only" id="scene-title">Race track</h2>
       <div class="sky">
         <span class="sun"></span>
         <span class="cloud c1"></span>
@@ -102,6 +110,7 @@
       </details>
     </div>
   </dialog>
+  <div id="google-translate" hidden></div>
   <script src="dist/bundle.js"></script>
 </body>
 </html>

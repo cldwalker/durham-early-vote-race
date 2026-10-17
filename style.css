@@ -24,7 +24,70 @@ body {
 .page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
 
 /* Header */
-.hero { text-align: center; margin-bottom: 18px; }
+/* Read by screen readers but not shown. Used instead of aria-label on
+   sections because Google Translate stops updating text inside them */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.n::after { content: attr(data-n); }
+/* Margins instead of spaces, which Google Translate drops around them */
+.gap { margin: 0 .3em; }
+.card-total .num { margin-right: .3em; }
+.hero { position: relative; padding-top: 34px; text-align: center; margin-bottom: 18px; }
+
+/* EN/ES switch */
+.lang-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lang-note { font-size: 13px; font-weight: 600; color: var(--muted); }
+.lang {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: var(--card);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.lang::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 999px;
+  background: var(--ink);
+  transition: transform .25s cubic-bezier(.3, 1.4, .5, 1);
+}
+.lang[aria-checked="true"]::before { transform: translateX(100%); }
+.lang span { position: relative; padding: 4px 10px; color: var(--muted); transition: color .25s; }
+.lang[aria-checked="false"] span:first-child,
+.lang[aria-checked="true"] span:last-child { color: #fff; }
+.lang.busy::before { animation: lang-busy .9s ease-in-out infinite alternate; }
+@keyframes lang-busy { to { opacity: .45; } }
+.lang:hover { border-color: var(--ink); }
+.lang:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+
+/* Hide Google Translate's banner, tooltips and hover highlights */
+iframe.skiptranslate, #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+body { top: 0 !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
 .eyebrow {
   margin: 0;
   font-size: 13px;
@@ -127,7 +190,7 @@ h1 {
   font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  text-align: center;
 }
 .card-total {
   margin-top: 2px;
@@ -696,7 +759,7 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .start-btn, .cloud, .cheer-icon, .cheer-msg.swap,
-  .cheer[open], .cheer[open]::backdrop, .cheer-say[open] .cheer-say-options,
+  .cheer[open], .cheer[open]::backdrop, .lang::before, .lang.busy::before, .cheer-say[open] .cheer-say-options,
   .clip, .tv::before, .tv::after, .clip:not(.on) .tv-screen::before,
   .tv-screen iframe, .tv-power, .more:target { animation: none; }
 }
