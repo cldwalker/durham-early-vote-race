@@ -2,8 +2,8 @@ name: Build and Deploy
 on:
   push:
     branches: [main]
-    # paths-ignore:
-    #   - '*.md'
+    paths-ignore:
+      - '*.md'
 permissions:
   contents: write
 jobs:
@@ -18,8 +18,11 @@ jobs:
         run: |
           npm ci
           npm run build
+          mkdir -p site/dist
+          cp index.html style.css site/
+          cp dist/bundle.js site/dist/
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: .
+          folder: site

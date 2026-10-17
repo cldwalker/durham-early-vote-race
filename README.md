@@ -17,7 +17,7 @@ python3 -m http.server &; open http://localhost:8000
 
 The webpage should render well on Chrome and Firefox on either desktop or mobile.
 
-Most of the JS is written with https://github.com/squint-cljs/squint. This is the way.
+All of the JS is written with https://github.com/squint-cljs/squint. This is the way.
 
 cljs code should lint with [clj-kondo](https://github.com/clj-kondo/clj-kondo) - `clj-kondo --lint src`.
 
