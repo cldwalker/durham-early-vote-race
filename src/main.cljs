@@ -208,8 +208,7 @@
   (let [ends (.sort (.filter runners #(not (:complete %))) #(- (:end-k %1) (:end-k %2)))]
     (set! chaser (first ends))
     (set! pause-ms (when chaser (* (/ (:end-k chaser) days) race-ms)))
-    (set-text! "note" (.join (.concat [(str "Each runner advances by their year's daily " unit ". "
-                                            "Counts are smoothed between days so the runners move continuously.")]
+    (set-text! "note" (.join (.concat [(str "Each runner moves at the pace of their year's daily " unit ". ")]
                                       (.map ends #(str (:name %) " is still in progress, with data through day "
                                                        (:end-k %) ".")))
                              " ")))

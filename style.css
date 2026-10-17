@@ -399,19 +399,27 @@ h1 {
 }
 .cheer-close {
   position: absolute;
-  top: 8px;
+  top: 10px;
   right: 10px;
-  width: 36px;
-  height: 36px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0 0 3px;
   border: 0;
   border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
-  font-size: 26px;
+  background: #f1ede4;
+  color: var(--ink);
+  font-size: 30px;
   line-height: 1;
   cursor: pointer;
+  transition: background .15s, transform .15s;
 }
-.cheer-close:hover { background: #f1ede4; color: var(--ink); }
+/* Grows the tap target to cover the whole top-right corner */
+.cheer-close::after { content: ""; position: absolute; inset: -10px; border-radius: 0 0 0 24px; }
+.cheer-close:hover { background: #e5dfd2; transform: scale(1.08); }
+.cheer-close:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 .cheer-icon {
   font-size: 44px;
   line-height: 1;
@@ -614,17 +622,38 @@ h1 {
   text-decoration: none;
   transition: border-color .2s, transform .2s;
 }
-.more-links a::after { content: "↗"; margin-left: auto; color: var(--muted); }
+.more-links a::after { content: "↗"; margin-left: auto; align-self: flex-start; color: var(--muted); }
+.link-icon { flex: none; font-size: 20px; }
+.link-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.link-text small { font-size: 13px; font-weight: 500; line-height: 1.35; color: var(--muted); }
 .more-links a:hover { border-color: var(--ink); transform: translateY(-2px); }
 .more-links a:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 .footer {
-  padding: 8px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 40px;
   text-align: center;
   font-size: 14px;
   color: var(--muted);
 }
-.footer a { color: var(--ink); }
+.footer p { margin: 0; }
+.footer a { color: var(--ink); font-weight: 600; }
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: var(--card);
+  text-decoration: none;
+  transition: border-color .2s, transform .2s;
+}
+.source-link:hover { border-color: var(--ink); transform: translateY(-2px); }
+.source-link:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 html { scroll-behavior: smooth; }
 

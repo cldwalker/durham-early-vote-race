@@ -28,9 +28,10 @@
 
 (defn parse-phrases
   "Parses voter-phrases.csv: one phrase per line. A line wrapped in double
-  quotes is unquoted, and a literal `\\n` marks a line break within a phrase."
+  quotes is unquoted, a literal `\\n` marks a line break within a phrase and a
+  line starting with `#` is a comment."
   [text]
-  (.map (lines text)
+  (.map (.filter (lines text) #(not (.startsWith % "#")))
         (fn [l]
           (-> (if (.test #"^\".*\"$" l) (.replaceAll (.slice l 1 -1) "\"\"" "\"") l)
               (.replaceAll "\\n" "\n")))))
