@@ -461,6 +461,42 @@ h1 {
 .cheer-next:active { transform: translateY(3px); box-shadow: 0 1px 0 #14532d; }
 .cheer-done { border: 2px solid var(--ink); background: #fff; color: var(--ink); }
 .cheer-done:hover { background: var(--ink); color: #fff; }
+.cheer-say { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--rule); }
+.cheer-say summary {
+  display: inline-block;
+  padding: .35em .9em;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+.cheer-say summary::-webkit-details-marker { display: none; }
+.cheer-say summary:hover, .cheer-say[open] summary { background: #f1ede4; color: var(--ink); }
+.cheer-say summary:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+.cheer-say-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cheer-say[open] .cheer-say-options { animation: say-pop .3s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes say-pop { from { opacity: 0; transform: translateY(-6px) scale(.96); } }
+.cheer-say-options a {
+  display: inline-block;
+  padding: .45em 1em;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color .2s, transform .2s;
+}
+.cheer-say-options a:hover { border-color: var(--ink); transform: translateY(-2px); }
+.cheer-say-options a:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 .cheer button:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
 
 @media (max-width: 560px) {
@@ -660,7 +696,7 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .start-btn, .cloud, .cheer-icon, .cheer-msg.swap,
-  .cheer[open], .cheer[open]::backdrop,
+  .cheer[open], .cheer[open]::backdrop, .cheer-say[open] .cheer-say-options,
   .clip, .tv::before, .tv::after, .clip:not(.on) .tv-screen::before,
   .tv-screen iframe, .tv-power, .more:target { animation: none; }
 }
