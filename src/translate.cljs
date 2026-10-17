@@ -2,7 +2,9 @@
   "Optional Spanish translation through Google's website translator. Nothing
   from Google loads until a visitor switches to ES, which counts as consent.
   The widget remembers the choice in its `googtrans` cookie, so a returning
-  visitor who left the page in Spanish gets it translated again.")
+  visitor who left the page in Spanish gets it translated again. A link with
+  `?lang=es` translates right away and `?lang=en` forces English. While the
+  page is in Spanish its URL has `?lang=es`, so it can be shared as is.")
 
 (def ^:private script-url
   "https://translate.google.com/translate_a/element.js?cb=durhamTranslateInit")
@@ -73,6 +75,22 @@
                                (js/setTimeout #(pick (inc tries)) 250))))]
        (pick 0)))))
 
+(defn- show-lang-in-url!
+  "Adds `?lang=es` to the address bar for Spanish and removes `lang` for
+  English, keeping other params and the hash. It replaces the history entry,
+  so toggling doesn't pile up Back button steps."
+  [lang]
+  (let [url (js/URL. js/location.href)]
+    (if (identical? lang "es")
+      (.set (.-searchParams url) "lang" "es")
+      (.delete (.-searchParams url) "lang"))
+    ;; Some browsers refuse URL changes on file:// pages
+    (try (js/history.replaceState js/history.state "" url) (catch :default _ nil))))
+
+(defn- forget-spanish! []
+  (doseq [domain ["" (str "; domain=" js/location.hostname) (str "; domain=." js/location.hostname)]]
+    (set! js/document.cookie (str "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/" domain))))
+
 (defn- restore-english
   "Clicks the widget's own Show original button, which lives in its hidden
   banner. Falls back to clearing the cookie and reloading."
@@ -81,9 +99,7 @@
         button (some-> banner .-contentDocument (.querySelector "[id$='.restore']"))]
     (if button
       (.click button)
-      (do (doseq [domain ["" (str "; domain=" js/location.hostname) (str "; domain=." js/location.hostname)]]
-            (set! js/document.cookie (str "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/" domain)))
-          (js/location.reload)))))
+      (do (forget-spanish!) (js/location.reload)))))
 
 (defn init
   "Wires the EN/ES `toggle` button and the `note` element that reports
@@ -97,6 +113,7 @@
         switch-to (fn [lang]
                     (set! wanted lang)
                     (render)
+                    (show-lang-in-url! lang)
                     (if (identical? lang "es")
                       (do (.add (.-classList toggle) "busy")
                           (say "Traduciendo…" nil)
@@ -107,9 +124,13 @@
                                         (set! loader nil)
                                         (set! wanted "en")
                                         (render)
+                                        (show-lang-in-url! "en")
                                         (say "Translation unavailable right now" 4000)))
                               (.finally #(.remove (.-classList toggle) "busy"))))
                       (do (say "" nil)
                           (when (translated?) (restore-english)))))]
     (.addEventListener toggle "click" #(switch-to (if (identical? wanted "es") "en" "es")))
-    (when (spanish-cookie?) (switch-to "es"))))
+    (let [lang (.get (js/URLSearchParams. js/location.search) "lang")]
+      (cond (identical? lang "es") (switch-to "es")
+            (identical? lang "en") (forget-spanish!)
+            (spanish-cookie?) (switch-to "es")))))

@@ -2,6 +2,10 @@
 
 This is a fun little webpage to compare early voting years as an animated race. Hopefully it encourages folks to vote early, pay attention to voter turn out and help others with voting!
 
+## Sharing with Others
+
+For Spanish speaking folks, the website automatically translates with https://tagaholic.me/durham-early-vote-race?lang=es. To skip the racing and focus on useful links, https://tagaholic.me/durham-early-vote-race/#early-voting-links.
+
 ## Development
 
 Recommend installing node 26.0+ and npm 11.12.1+. Then:
