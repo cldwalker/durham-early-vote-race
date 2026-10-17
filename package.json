@@ -3,13 +3,14 @@
   "private": true,
   "description": "Animated race comparing early vote counts between two years",
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=iife --target=es2019 --loader:.csv=text --outfile=dist/bundle.js",
-    "watch": "npm run build -- --watch"
+    "build": "squint compile && esbuild out/main.mjs --bundle --format=iife --target=es2019 --loader:.csv=text --minify --outfile=dist/bundle.js",
+    "watch": "squint watch & esbuild out/main.mjs --bundle --format=iife --target=es2019 --loader:.csv=text --minify --outfile=dist/bundle.js --watch"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "squint-cljs": "^0.15.212"
   }
 }

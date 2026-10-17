@@ -9,21 +9,15 @@
 <body>
   <main class="page">
     <header class="hero">
-      <p class="eyebrow">Durham County · Early voting</p>
-      <h1>The Early Vote Race</h1>
+      <h1>Bull City's Early Vote Race</h1>
       <p class="sub" id="subtitle"></p>
     </header>
 
     <section class="matchup" id="matchup" aria-label="Choose the years that race"></section>
 
     <section class="board" aria-label="Race scoreboard">
-      <div class="day-chip">
-        <span class="day-label">Day</span>
-        <span class="day-num" id="day">–</span>
-        <span class="day-of" id="day-of"></span>
-      </div>
       <div class="cards" id="cards"></div>
-      <p class="lead" id="lead">Press start to begin</p>
+      <p class="lead" id="lead"></p>
     </section>
 
     <section class="scene" id="scene" aria-label="Race track">
@@ -43,7 +37,7 @@
       <div class="grass bottom"></div>
       <div class="overlay" id="overlay">
         <button class="start-btn" id="start-btn" type="button">
-          <span class="go-icon" aria-hidden="true">▶</span> Start the race
+          <span class="go-icon" aria-hidden="true">▶</span> Start
         </button>
       </div>
       <div class="countdown" id="countdown" hidden></div>
@@ -53,17 +47,43 @@
       <p class="result-title" id="result-title"></p>
       <p class="result-sub" id="result-sub"></p>
       <button class="again-btn" id="again-btn" type="button">↻ Race again</button>
+
+      <div class="clip" id="clip" hidden>
+        <p class="clip-title">📺 Celebrate after the race</p>
+        <div class="tv">
+          <div class="tv-screen" id="tv-screen"></div>
+          <button class="tv-power" id="tv-power" type="button">
+            <span class="tv-knob" aria-hidden="true"></span> Turn on the TV
+          </button>
+          <div class="tv-panel" aria-hidden="true"><i></i><i></i><b></b></div>
+        </div>
+        <a class="clip-link" href="https://www.youtube.com/watch?v=ukmibZfZTb8&amp;t=241s" target="_blank" rel="noopener">Watch on YouTube instead ↗</a>
+      </div>
     </section>
 
     <p class="note" id="note"></p>
+
+    <section class="more" id="more-about-early-voting" aria-labelledby="more-title">
+      <h2 id="more-title">More about Early Voting</h2>
+      <ul class="more-links">
+        <li><a href="https://app.powerbigov.us/view?r=eyJrIjoiNTRhZjM4MjEtNDI2ZS00ZjhmLTk5YmEtYzdiN2RiNzMyNzYxIiwidCI6ImMxNmEwMGEzLTU2MDktNDdjMC1iMmMyLTcyZDg2MzVlMzQyMyJ9" target="_blank" rel="noopener"><span aria-hidden="true">📊</span> Official early voting data</a></li>
+        <li><a href="https://www.dcovotes.dconc.gov/voters/voting/early-voting" target="_blank" rel="noopener"><span aria-hidden="true">🗳️</span> Durham's early voting website</a></li>
+        <li><a href="https://durhamnc.maps.arcgis.com/apps/instant/nearby/index.html?appid=1d42511f6e2e45dfbd5b21d233899a64" target="_blank" rel="noopener"><span aria-hidden="true">📍</span> Durham early voting locator</a></li>
+      </ul>
+    </section>
   </main>
+
+  <footer class="footer">
+    Artisanly slopped by <a href="https://bsky.app/profile/cldwalker.bsky.social">@cldwalker</a>.
+    <a href="https://github.com/cldwalker/durham-early-vote-race">See here</a> for this website's source code.
+  </footer>
 
   <dialog class="cheer" id="cheer" aria-labelledby="cheer-title">
     <div class="cheer-card">
       <button class="cheer-close" id="cheer-close" type="button" aria-label="Close and keep racing">×</button>
       <div class="cheer-icon" aria-hidden="true">📣</div>
       <p class="cheer-title" id="cheer-title"></p>
-      <p class="cheer-intro">Here's what a fellow Durhamite wants you to know:</p>
+      <p class="cheer-intro">Here's what a fellow voter wants you to know:</p>
       <blockquote class="cheer-msg" id="cheer-msg" aria-live="polite"></blockquote>
       <div class="cheer-actions">
         <button class="cheer-next" id="cheer-next" type="button">Show another</button>
