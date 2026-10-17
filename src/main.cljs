@@ -14,7 +14,7 @@
 (def anchor 0.65)
 (def aspect (/ (:w viewbox) (:h viewbox)))
 (def default-years ["2022" "2026"])
-(def start-lead (str "Press start to race or <a href=\"#more-about-early-voting\">learn more</a> "
+(def start-lead (str "Press start to race or <a href=\"#early-voting-links\">learn more</a> "
                      "about early voting."))
 ;; Debug/screenshot aid: index.html?at=6.5 loads with the race already 6.5s in
 (def skip-to (.get (js/URLSearchParams. js/location.search) "at"))
@@ -52,7 +52,7 @@
 (def clip-url "https://www.youtube-nocookie.com/embed/ukmibZfZTb8?start=241&rel=0")
 (def reduced-motion (js/matchMedia "(prefers-reduced-motion: reduce)"))
 
-(set-text! "subtitle" "Pick two years of early voting and see which year had more ballots.")
+(set-text! "subtitle" "Pick two years of early voting and see which year wins the ballot race.")
 
 ;; Indexes into `years` of the year running in each lane
 (def picked
