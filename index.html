@@ -27,6 +27,11 @@
       <p class="lead" id="lead"></p>
     </section>
 
+    <div class="seg view-switch" id="view-switch" role="group">
+      <button class="seg-btn" type="button" data-view="race" aria-pressed="true">🏁 Race</button>
+      <button class="seg-btn" type="button" data-view="data" aria-pressed="false">📊 Data</button>
+    </div>
+
     <section class="scene" id="scene" aria-labelledby="scene-title">
       <h2 class="sr-only" id="scene-title">Race track</h2>
       <div class="sky">
@@ -49,6 +54,18 @@
         </button>
       </div>
       <div class="countdown" id="countdown" hidden></div>
+    </section>
+
+    <section class="data" id="data" hidden aria-labelledby="data-title">
+      <div class="data-head">
+        <h2 class="data-title" id="data-title"></h2>
+        <div class="seg" id="chart-switch" role="group">
+          <button class="seg-btn" type="button" data-chart="daily" aria-pressed="true">Daily</button>
+          <button class="seg-btn" type="button" data-chart="total" aria-pressed="false">Running total</button>
+        </div>
+      </div>
+      <div class="data-legend" id="data-legend"></div>
+      <ol class="days" id="days"></ol>
     </section>
 
     <section class="result" id="result" hidden aria-live="polite">
@@ -92,10 +109,10 @@
 
   <dialog class="cheer" id="cheer" aria-labelledby="cheer-title">
     <div class="cheer-card">
-      <button class="cheer-close" id="cheer-close" type="button" aria-label="Close and keep racing">×</button>
+      <button class="cheer-close" id="cheer-close" type="button" aria-label="Close">×</button>
       <div class="cheer-icon" aria-hidden="true">📣</div>
       <p class="cheer-title" id="cheer-title"></p>
-      <p class="cheer-intro">Here's what a fellow voter wants you to know:</p>
+      <p class="cheer-intro">Here's what a fellow Durhamite wants you to know:</p>
       <blockquote class="cheer-msg" id="cheer-msg" aria-live="polite"></blockquote>
       <div class="cheer-actions">
         <button class="cheer-next" id="cheer-next" type="button">Show someone else</button>

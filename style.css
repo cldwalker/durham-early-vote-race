@@ -84,8 +84,11 @@ body {
 .lang:hover { border-color: var(--ink); }
 .lang:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
-/* Hide Google Translate's banner, tooltips and hover highlights */
-iframe.skiptranslate, #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+/* Hide Google Translate's banner, tooltips, hover highlights and floating
+   progress spinner. The spinner only has an obfuscated class that Google
+   could rename */
+iframe.skiptranslate, #goog-gt-tt, .goog-te-balloon-frame,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf { display: none !important; }
 body { top: 0 !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
 .eyebrow {
@@ -209,6 +212,89 @@ h1 {
   color: var(--muted);
 }
 .lead a { color: var(--ink); text-underline-offset: 3px; }
+
+/* Two-option pill switches */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: var(--card);
+}
+.seg-btn {
+  padding: .4em 1em;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.seg-btn:hover { color: var(--ink); }
+.seg-btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.seg-btn:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+.view-switch { display: flex; width: max-content; max-width: 100%; margin: 0 auto 12px; }
+.view-switch .seg-btn { padding: .5em 1.25em; font-size: 16px; }
+
+/* Data view */
+.data {
+  padding: 16px 18px 10px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(31, 41, 51, .1);
+  animation: data-in .35s ease-out;
+}
+@keyframes data-in { from { opacity: 0; transform: translateY(8px); } }
+.data-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.data-title { margin: 0; font-size: clamp(18px, 3vw, 22px); }
+.data-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 6px; font-size: 14px; font-weight: 800; }
+.data-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--c);
+  vertical-align: -1px;
+}
+.days { margin: 0; padding: 0; list-style: none; }
+.day {
+  display: grid;
+  grid-template-columns: 3.8em 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--rule);
+}
+.day-label { font-size: 13px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.day-bars { display: grid; gap: 4px; }
+.day-bar { display: flex; align-items: center; gap: 8px; min-height: 18px; }
+.day-fill {
+  flex: none;
+  width: calc((100% - 5em) * var(--p, 0));
+  min-width: 3px;
+  height: 13px;
+  border-radius: 99px;
+  background: var(--c);
+  transition: width .6s cubic-bezier(.2, .8, .2, 1);
+}
+.day-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.day-bar.empty .day-fill { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rule); width: 22px; }
+.day-note { color: var(--muted); font-size: 13px; font-weight: 600; font-style: italic; white-space: nowrap; }
+.day-val[data-n=""], .day-note:empty { display: none; }
 
 /* Scene */
 .scene {
@@ -393,7 +479,7 @@ h1 {
   pointer-events: none;
   opacity: 0;
 }
-.countdown.pop { animation: pop .65s ease-out forwards; }
+.countdown.pop { animation: pop .45s ease-out forwards; }
 @keyframes pop {
   0% { opacity: 0; transform: scale(.4); }
   20% { opacity: 1; transform: scale(1.1); }
@@ -759,7 +845,8 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .start-btn, .cloud, .cheer-icon, .cheer-msg.swap,
-  .cheer[open], .cheer[open]::backdrop, .lang::before, .lang.busy::before, .cheer-say[open] .cheer-say-options,
+  .cheer[open], .cheer[open]::backdrop, .data, .lang::before, .lang.busy::before, .cheer-say[open] .cheer-say-options,
   .clip, .tv::before, .tv::after, .clip:not(.on) .tv-screen::before,
   .tv-screen iframe, .tv-power, .more:target { animation: none; }
+  .day-fill { transition: none; }
 }
