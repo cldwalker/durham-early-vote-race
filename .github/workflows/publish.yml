@@ -22,6 +22,14 @@ jobs:
           cp index.html style.css site/
           cp dist/bundle.js site/dist/
 
+      # Gives the CSS and JS new URLs on every deploy. Otherwise a cache like
+      # Cloudflare's can serve old copies alongside a new index.html
+      - name: Bust caches 🧹
+        run: |
+          v=${GITHUB_SHA::8}
+          sed -i "s#href=\"style.css\"#href=\"style.css?v=$v\"#; s#src=\"dist/bundle.js\"#src=\"dist/bundle.js?v=$v\"#" site/index.html
+          grep -q "style.css?v=$v" site/index.html && grep -q "dist/bundle.js?v=$v" site/index.html
+
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
