@@ -411,9 +411,10 @@
                            (fmt (- (:total w) (:total runner-up))) " " unit ".")
                       (str (fmt (:total w)) " " unit "."))
                     (str (:name w) " wins!")))
-    (when decided
-      (.add (.-classList ($ "finish-sign")) "won")
-      (celebrate))
+    ;; The year that crosses first celebrates even when an in-progress year
+    ;; could still catch it, which only changes the result text
+    (.add (.-classList ($ "finish-sign")) "won")
+    (celebrate)
     (when player (show-player-result))))
 
 (defn- update-runner [r k elapsed dt now]
@@ -430,7 +431,7 @@
         (assoc! r :cum (:total r) :glide glide :v (* (:v r) (js/Math.exp (* -2 dt)))
                 :x (if (:winner r) x (min x (- finish 4))))))
     (let [norm (/ (:v r) (/ span (/ race-ms 1000)))]
-      (if (and (:winner r) decided (= mode :finished) (or (< norm 0.15) (> (- now finished-at) 700)))
+      (if (and (:winner r) (= mode :finished) (or (< norm 0.15) (> (- now finished-at) 700)))
         (do (when (nil? (:celebrate-at r))
               (assoc! r :celebrate-at now)
               (.add (.-classList (:bubble r)) "won"))

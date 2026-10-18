@@ -10,8 +10,8 @@
    {:shirt "#db2777" :shorts "#3b0764" :skin "#9a5b34" :hair "#1c1310"
     :shoe "#f8fafc" :sole "#db2777" :band nil :ponytail true}
    ;; The runner a visitor controls
-   {:shirt "#16a34a" :shorts "#14532d" :skin "#c68642" :hair "#2b1b10"
-    :shoe "#111827" :sole "#facc15" :band "#f8fafc" :ponytail false}])
+   {:shirt "#16a34a" :shorts "#14532d" :skin "#c68642" :hair "#5a3214"
+    :shoe "#111827" :sole "#facc15" :band "#f8fafc" :ponytail true}])
 
 (defn- shade [hex amount]
   (let [n (js/parseInt (subs hex 1) 16)
