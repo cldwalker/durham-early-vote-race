@@ -305,6 +305,8 @@ h1 {
   box-shadow: 0 10px 30px rgba(31, 41, 51, .18);
   user-select: none;
   -webkit-user-select: none;
+  /* Fast taps when racing yourself shouldn't zoom the page */
+  touch-action: manipulation;
 }
 .sky {
   position: relative;
@@ -397,6 +399,7 @@ h1 {
   bottom: 4px;
   width: var(--runner-w);
   height: var(--runner-h);
+  z-index: 2;
   will-change: transform;
 }
 .runner svg { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -441,9 +444,80 @@ h1 {
   inset: 0;
   z-index: 5;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
   background: rgba(15, 23, 42, .3);
 }
+.play-btn {
+  padding: .5em 1.2em;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .55);
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.play-btn:hover { background: rgba(15, 23, 42, .8); transform: translateY(-2px); }
+.play-btn:focus-visible, .pad-btn:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
+
+/* Positive voting actions the player leaves behind as they run */
+.tap-msg {
+  position: absolute;
+  bottom: 12%;
+  /* Under the runner so a message never hides them */
+  z-index: 1;
+  padding: 3px 9px;
+  border: 2px solid #16a34a;
+  border-radius: 12px;
+  background: #fff;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 800;
+  /* Long messages wrap rather than run off a narrow track */
+  width: max-content;
+  max-width: calc(100% - 24px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .25);
+  pointer-events: none;
+  animation: tap-msg 1.8s ease-out forwards;
+}
+@keyframes tap-msg {
+  0% { opacity: 0; transform: translate(14px, 10px) scale(.85); }
+  12% { opacity: 1; transform: translate(0, 0) scale(1); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-12px, -96px); }
+}
+@keyframes tap-msg-fade { 12%, 70% { opacity: 1; } 0%, 100% { opacity: 0; } }
+@media (max-width: 560px) { .tap-msg { font-size: 11px; } }
+
+/* On-screen Run button for racing yourself, bottom-right for a thumb */
+.pad {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 6;
+}
+.pad-btn {
+  height: 64px;
+  padding: 0 22px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, .9);
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.pad-btn:active { transform: scale(.92); background: #15803d; }
 .start-btn {
   display: inline-flex;
   align-items: center;
@@ -500,6 +574,7 @@ h1 {
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 .result-title { margin: 0; font-size: clamp(24px, 4vw, 34px); font-weight: 900; }
 .result-sub { margin: 4px 0 14px; color: var(--muted); }
+.result-you { margin: -6px 0 14px; font-weight: 800; color: #15803d; }
 .again-btn {
   padding: .6em 1.3em;
   border: 2px solid var(--ink);
@@ -849,4 +924,5 @@ html { scroll-behavior: smooth; }
   .clip, .tv::before, .tv::after, .clip:not(.on) .tv-screen::before,
   .tv-screen iframe, .tv-power, .more:target { animation: none; }
   .day-fill { transition: none; }
+  .tap-msg { animation-name: tap-msg-fade; }
 }

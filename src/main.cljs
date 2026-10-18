@@ -2,6 +2,7 @@
   (:require ["canvas-confetti$default" :as confetti]
             ["../early-vote-counts.csv$default" :as counts-csv]
             ["../voter-phrases.csv$default" :as phrases-csv]
+            ["../positive-voting-actions.csv$default" :as actions-csv]
             [curve :refer [monotone-curve]]
             [data :refer [parse-counts parse-phrases]]
             [runner :refer [looks viewbox create-runner run-pose celebrate-pose]]
@@ -58,6 +59,13 @@
 (def years (:years counts))
 (def days (:days counts))
 (def phrases (parse-phrases phrases-csv))
+;; Shown behind the player as they run. The page keeps them as invisible text
+;; so Google Translate has them in Spanish before they're needed
+(def actions (doto (el "ul" "sr-only" "")
+               (.setAttribute "aria-hidden" "true")
+               (set! -innerHTML (.join (.map (parse-phrases actions-csv) #(str #html [:li %])) ""))))
+(.append js/document.body actions)
+(def action-index 0)
 
 (def scene ($ "scene"))
 (def road ($ "road"))
@@ -97,6 +105,14 @@
 (def final-lead "")
 (def last-frame (js/performance.now))
 (def phrase-index -1)
+;; The runner a visitor moves by tapping the track or pressing ← or → in
+;; "Race them yourself", or nil. `playing` is whether Race again includes them
+(def player nil)
+(def playing false)
+;; How quickly the player's speed fades, per second, and the taps per second
+;; it takes to keep pace with the race clock
+(def player-drag 1)
+(def target-taps 2.5)
 ;; Whether the cheer modal is closing through its Keep racing button
 (def keep-racing false)
 
@@ -139,15 +155,24 @@
             (.toggle (.-classList chip) "taken" theirs)
             (set! (.-title chip) (if theirs "Swap lanes" ""))))))))
 
-(defn- make-runner [{:keys [name complete data-days vote-days cumulative]} slot]
-  (let [look (aget looks (mod slot (count looks)))
-        fig (create-runner look name)
-        lane (el "div" "lane" "")
-        card (el "div" "card" "")]
+(defn- make-lane
+  "Adds a lane to the track with a runner wearing `look` and `bib`, labelled
+  `name` in its bubble."
+  [name look bib]
+  (let [fig (create-runner look bib)
+        lane (el "div" "lane" "")]
     (.setProperty (.-style lane) "--c" (:shirt look))
     (set! (.-innerHTML lane) (str #html [:<> [:div.bubble.notranslate [:b name] [:span.n {:data-n "0"}]] [:div.runner]]))
     (.append (.querySelector lane ".runner") (:el fig))
     (.append road lane)
+    {:lane lane :fig fig :look look
+     :wrap (.querySelector lane ".runner")
+     :bubble (.querySelector lane ".bubble")
+     :bubble-total (.querySelector lane ".bubble span")}))
+
+(defn- make-runner [{:keys [name complete data-days vote-days cumulative]} slot]
+  (let [look (aget looks slot)
+        card (el "div" "card" "")]
     (.setProperty (.-style card) "--c" (:shirt look))
     (set! (.-innerHTML card)
           (str #html [:<>
@@ -155,7 +180,9 @@
                       [:div.card-total [:span.num.n.notranslate {:data-n "0"}] [:span.card-unit unit]]
                       [:div.bar [:i]]]))
     (.append ($ "cards") card)
-    {:name name :look look :fig fig :card card :complete complete
+    (js/Object.assign
+     (make-lane name look name)
+     {:name name :card card :complete complete
      :curve (monotone-curve cumulative {:end-at-rest (not complete)})
      :end-k data-days
      :vote-days vote-days
@@ -163,13 +190,10 @@
      :total (last cumulative)
      :cumulative cumulative
      :winner false
-     :wrap (.querySelector lane ".runner")
-     :bubble (.querySelector lane ".bubble")
-     :bubble-total (.querySelector lane ".bubble span")
      :card-total (.querySelector card ".num")
      :bar (.querySelector card ".bar i")
      :phase (* slot 1.7)
-     :x 0 :v 0 :cum 0 :glide 0 :celebrate-at nil :shown ""}))
+     :x 0 :v 0 :cum 0 :glide 0 :celebrate-at nil :shown ""})))
 
 (defn- layout []
   (let [W (.-clientWidth road)
@@ -212,6 +236,7 @@
   (set! paused-once false)
   (.remove (.-classList ($ "finish-sign")) "won")
   (set! (.-hidden result) true)
+  (set! (.-hidden ($ "result-you")) true)
   (turn-off-tv))
 
 (defn- close-cheer []
@@ -304,6 +329,8 @@
 (defn- build-race []
   (close-cheer)
   (doseq [lane (.querySelectorAll road ".lane")] (.remove lane))
+  (set! player nil)
+  (set! (.-hidden ($ "pad")) true)
   (.replaceChildren ($ "cards"))
   (set! runners (.map picked (fn [yi slot] (make-runner (aget years yi) slot))))
   (set! best (.reduce runners #(max %1 (:total %2)) 1))
@@ -353,6 +380,8 @@
   (set-text! "result-sub" sub)
   (set! final-lead lead))
 
+(declare show-player-result)
+
 (defn- finish [now]
   (set! mode :finished)
   (set! finished-at now)
@@ -384,7 +413,8 @@
                     (str (:name w) " wins!")))
     (when decided
       (.add (.-classList ($ "finish-sign")) "won")
-      (celebrate))))
+      (celebrate))
+    (when player (show-player-result))))
 
 (defn- update-runner [r k elapsed dt now]
   (let [{:keys [start span finish]} G]
@@ -408,19 +438,118 @@
         (do (assoc! r :phase (+ (:phase r) (* 2 js/Math.PI (+ 0.9 (* 1.5 (min norm 1.6))) dt)))
             ((:set-pose (:fig r)) (run-pose (:phase r) (clamp (* norm 1.5) 0 1))))))))
 
-(defn- render-runner [{:keys [x cum bubble] :as r}]
-  (set! (.. (:wrap r) -style -transform) (str "translateX(" (.toFixed (- x (* (:rw G) anchor)) 1) "px)"))
+(defn- place-runner
+  "Moves `r`'s figure to its `:x` and keeps its bubble above its head but
+  inside the track."
+  [{:keys [x wrap bubble]}]
+  (set! (.. wrap -style -transform) (str "translateX(" (.toFixed (- x (* (:rw G) anchor)) 1) "px)"))
+  (let [bw (.-offsetWidth bubble)
+        left (clamp (- x (/ bw 2)) 4 (- (:W G) bw 4))]
+    (set! (.. bubble -style -transform) (str "translateX(" (.toFixed left 1) "px)"))
+    (.setProperty (.-style bubble) "--tip" (str (.toFixed (clamp (- x left) 10 (- bw 10)) 1) "px"))))
+
+(defn- render-runner [{:keys [cum] :as r}]
+  (place-runner r)
   (let [text (fmt cum)]
     (when-not (identical? text (:shown r))
       (assoc! r :shown text)
       (put-num! (:bubble-total r) text)
       (put-num! (:card-total r) text)))
-  (set! (.. (:bar r) -style -width) (str (* (/ cum best) 100) "%"))
-  ;; Keep the label above the runner's head but inside the track
-  (let [bw (.-offsetWidth bubble)
-        left (clamp (- x (/ bw 2)) 4 (- (:W G) bw 4))]
-    (set! (.. bubble -style -transform) (str "translateX(" (.toFixed left 1) "px)"))
-    (.setProperty (.-style bubble) "--tip" (str (.toFixed (clamp (- x left) 10 (- bw 10)) 1) "px"))))
+  (set! (.. (:bar r) -style -width) (str (* (/ cum best) 100) "%")))
+
+(defn- secs [ms] (.toFixed (/ ms 1000) 1))
+
+(defn- show-player-result
+  "Says how the player did against the year that crossed the line first."
+  []
+  (let [{:keys [done-at frac]} player
+        leader (:name (.reduce runners #(if (> (:total %2) (:total %1)) %2 %1)))]
+    (set-text! "result-you"
+               (cond (nil? done-at) (str "🕹️ Keep going! You're " (js/Math.floor (* 100 frac)) "% of the way there.")
+                     (<= done-at race-ms) (str "🕹️ You crossed the line in " (secs done-at) "s, ahead of every year!")
+                     :else (str "🕹️ You crossed the line in " (secs done-at) "s, " (secs (- done-at race-ms))
+                                "s after " leader ".")))
+    (set! (.-hidden ($ "result-you")) false)))
+
+(defn- update-player
+  "Moves the player by their speed, which fades unless they keep tapping, and
+  celebrates if they cross the finish line ahead of every year. Their bubble shows how far
+  they've run in ballots, on the same scale as the years. Crossing the line
+  shows one ballot more than the most any year had when they got there first,
+  or one less than the winning year's total when they didn't."
+  [p dt now]
+  (let [{:keys [start span]} G
+        T (/ race-ms 1000)]
+    (when (or (= mode :racing) (= mode :finished))
+      (let [v (* (:v p) (js/Math.exp (* (- player-drag) dt)))
+            frac (min 1 (+ (:frac p) (* v dt)))]
+        (assoc! p :v (if (< frac 1) v 0) :frac frac)
+        (when (and (>= frac 1) (nil? (:done-at p)))
+          (assoc! p :done-at (- now race-start))
+          ;; Only a player who beat every year jumps for joy
+          (when (<= (:done-at p) race-ms)
+            (assoc! p :celebrate-at now)
+            (.add (.-classList (:bubble p)) "won"))
+          (when (= mode :finished) (show-player-result)))))
+    (assoc! p :x (+ start (* (:frac p) span)))
+    (let [{:keys [done-at frac]} p
+          ;; The year with the most ballots, `best`, crosses the line first
+          winner-total best
+          text (fmt (cond (nil? done-at) (* frac best)
+                          (<= done-at race-ms) (inc best)
+                          :else (dec winner-total)))]
+      (when-not (identical? text (:shown p))
+        (assoc! p :shown text)
+        (put-num! (:bubble-total p) text)))
+    (if (:celebrate-at p)
+      ((:set-pose (:fig p)) (celebrate-pose (/ (- now (:celebrate-at p)) 1000)))
+      (let [norm (* (:v p) T)]
+        (assoc! p :phase (+ (:phase p) (* 2 js/Math.PI (+ 0.9 (* 1.5 (min norm 1.6))) dt)))
+        ((:set-pose (:fig p)) (run-pose (:phase p) (clamp (* norm 1.5) 0 1)))))
+    (place-runner p)))
+
+(defn- leave-action
+  "Leaves the next positive voting action behind the player, at most every
+  450ms and three at a time, so fast tapping doesn't pile them up. It stays
+  inside the track, even when the player is near the start."
+  [now]
+  (let [items (.-children actions)]
+    (when (and (pos? (.-length items)) (>= (- now (:said-at player)) 450))
+      (assoc! player :said-at now)
+      (let [lane (:lane player)
+            msg (el "span" "tap-msg notranslate" (.-textContent (aget items (mod action-index (.-length items)))))
+            shown (.querySelectorAll lane ".tap-msg")
+            {:keys [W rw]} G]
+        (set! action-index (inc action-index))
+        (when (>= (.-length shown) 3) (.remove (aget shown 0)))
+        (.addEventListener msg "animationend" #(.remove msg))
+        (.append lane msg)
+        (let [w (.-offsetWidth msg)]
+          ;; 16px of room on the left for the message drifting back as it fades
+          (set! (.. msg -style -left) (str (clamp (- (:x player) (* rw anchor) w -12) 16 (- W w 4)) "px")))))))
+
+(defn- step-player
+  "Speeds the player up by one tap while they're racing."
+  []
+  (when (and player (or (= mode :racing) (= mode :finished)) (nil? (:done-at player)))
+    (assoc! player :v (+ (:v player) (/ player-drag (* (/ race-ms 1000) target-taps))))
+    (leave-action (js/performance.now))))
+
+(defn- start-race
+  "Starts the countdown, with a lane for the player when `play?`."
+  [play?]
+  (set! playing play?)
+  (when player (.remove (:lane player)))
+  (set! player (when play?
+                 (js/Object.assign (make-lane "You" (aget looks 2) "YOU")
+                                   {:x 0 :v 0 :frac 0 :phase 0 :shown "" :said-at 0
+                                    :done-at nil :celebrate-at nil})))
+  ;; Each race starts somewhere new in the list of actions
+  (set! action-index (js/Math.floor (* (js/Math.random) 1000)))
+  (set! (.-hidden ($ "pad")) (not play?))
+  (start-countdown)
+  ;; The cheer modal would interrupt the player, so their races skip it
+  (set! paused-once play?))
 
 (defn- day-label
   "Labels how far into its own early voting period `r` is, since years can
@@ -440,7 +569,7 @@
     (when (not= mode :idle)
       (let [gap (if second-r (- (:cum first-r) (:cum second-r)) 0)]
         (if (or (= mode :countdown) (= mode :finished) (zero? (js/Math.round gap)))
-          (set-text! "lead" (cond (= mode :countdown) "On your marks…"
+          (set-text! "lead" (cond (= mode :countdown) (if player "Tap the track or press → to run!" "On your marks…")
                                   (= mode :finished) final-lead
                                   :else "Neck and neck!"))
           ;; Only the notranslate gap changes each frame, so a translated
@@ -512,6 +641,7 @@
       (doseq [r runners]
         (update-runner r k elapsed dt now)
         (render-runner r))
+      (when player (update-player player dt now))
       (render-board k)
       (when pause-now (pause now)))))
 
@@ -541,10 +671,30 @@
 (.addEventListener ($ "cheer-close") "click" close-cheer)
 (.addEventListener ($ "cheer-done") "click" #(do (set! keep-racing true) (close-cheer)))
 (.addEventListener ($ "cheer-next") "click" show-phrase)
-(.addEventListener ($ "start-btn") "click" start-countdown)
+(.addEventListener ($ "start-btn") "click" #(start-race false))
+(.addEventListener ($ "play-btn") "click" #(start-race true))
+(.addEventListener js/document "keydown"
+                   (fn [e]
+                     ;; → or Space runs. ← also works for anyone who tries it. A
+                     ;; held key's auto-repeat doesn't count as taps
+                     (when (and player (or (= mode :racing) (= mode :finished)) (nil? (:done-at player))
+                                (not (.-repeat e))
+                                (.includes ["ArrowRight" "ArrowLeft" " "] (.-key e))
+                                ;; Space still presses a focused button like Race again
+                                (not (and (identical? (.-key e) " ") (.closest (.-target e) "button"))))
+                       ;; Keep the keys from scrolling the page or pressing a
+                       ;; focused button mid-race
+                       (.preventDefault e)
+                       (step-player))))
+;; Any tap on the track counts, including the Run button
+(.addEventListener scene "pointerdown"
+                   (fn [e]
+                     (when (and player (.-hidden overlay))
+                       (.preventDefault e)
+                       (step-player))))
 (.addEventListener ($ "tv-power") "click" turn-on-tv)
 (.addEventListener ($ "again-btn") "click"
-                   #(do (start-countdown) (.scrollIntoView scene {:behavior "smooth" :block "center"})))
+                   #(do (start-race playing) (.scrollIntoView scene {:behavior "smooth" :block "center"})))
 (defn- on-view-click [e]
   (when-let [btn (.closest (.-target e) "[data-view]")]
     (let [v (.. btn -dataset -view)]
