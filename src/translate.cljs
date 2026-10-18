@@ -25,7 +25,7 @@
   (let [node (js/document.createElement "span")]
     (set! (.-hidden node) true)
     (.append js/document.body node)
-    (js/setInterval #(when (translated?) (set! (.-textContent node) (if (.-textContent node) "" "."))) 700)))
+    (js/setInterval #(when (translated?) (set! (.-textContent node) (if (identical? (.-textContent node) "") "." ""))) 700)))
 
 (defn- wait-for-combo
   "Polls for the widget's hidden language dropdown, which appears shortly

@@ -7,18 +7,22 @@
             [runner :refer [looks viewbox create-runner run-pose celebrate-pose]]
             [translate]))
 
-(def race-ms 10000)
+(def race-ms 5000)
 (def unit "ballots")
 (def countdown ["3" "2" "1" "Go!"])
-(def beat-ms 650)
+(def beat-ms 450)
 ;; Fraction of the runner's width where the chest is; this is what crosses the lines
 (def anchor 0.65)
 (def aspect (/ (:w viewbox) (:h viewbox)))
 (def default-years ["2022" "2026"])
-(def start-lead (str "Press start to race or <a href=\"#early-voting-links\">learn more</a> "
-                     "about early voting."))
+;; Shown in the lead line until a race starts, in both views
+(def idle-lead "<a href=\"#early-voting-links\">Learn more about early voting</a>")
 ;; Debug/screenshot aid: index.html?at=6.5 loads with the race already 6.5s in
 (def skip-to (.get (js/URLSearchParams. js/location.search) "at"))
+;; "race" or "data", which shows the picked years' ballots as bar charts
+(def view (if (identical? (.get (js/URLSearchParams. js/location.search) "view") "data") "data" "race"))
+;; "daily" ballots or their running "total" in the data view
+(def chart "daily")
 
 (defn- $ [id] (js/document.getElementById id))
 (def number-format (js/Intl.NumberFormat. "en-US"))
@@ -33,8 +37,9 @@
     (if html? (set! (.-innerHTML node) text) (set! (.-textContent node) text))))
 (defn- set-text! [id text] (put! ($ id) text false))
 (defn- put-num!
-  "Shows `text` through a `data-n` attribute that CSS displays. Changing text
-  every frame would stop Google Translate from translating anything else."
+  "Shows `text` through a `data-n` attribute that CSS displays. Changing many
+  numbers' text at once, or every frame, would stop Google Translate from
+  translating the other text that changed alongside them."
   [node text]
   (.setAttribute node "data-n" text))
 (defn- el [tag class text]
@@ -92,6 +97,8 @@
 (def final-lead "")
 (def last-frame (js/performance.now))
 (def phrase-index -1)
+;; Whether the cheer modal is closing through its Keep racing button
+(def keep-racing false)
 
 (declare build-race)
 
@@ -154,6 +161,7 @@
      :vote-days vote-days
      :card-day (.querySelector card ".card-day")
      :total (last cumulative)
+     :cumulative cumulative
      :winner false
      :wrap (.querySelector lane ".runner")
      :bubble (.querySelector lane ".bubble")
@@ -212,6 +220,87 @@
       (.close cheer)
       (.add (.-classList cheer) "closing"))))
 
+(declare day-label)
+
+(defn- day-value
+  "Returns `r`'s ballots on `day`, or their running total through it, or a
+  label for a day without ballots."
+  [{:keys [cumulative end-k vote-days]} day]
+  (cond (> day end-k) "not yet"
+        (> day vote-days) "no early voting"
+        :else (if (identical? chart "total")
+                (aget cumulative day)
+                (- (aget cumulative day) (aget cumulative (dec day))))))
+
+(defn- update-data
+  "Sizes and labels the data view's bars for the current `chart`."
+  []
+  (set-text! "data-title" (if (identical? chart "total") "Running total of ballots" "Ballots per day"))
+  (doseq [btn (.querySelectorAll ($ "chart-switch") "button")]
+    (.setAttribute btn "aria-pressed" (str (identical? (.. btn -dataset -chart) chart))))
+  (let [bars (js/Array.from (.querySelectorAll ($ "days") ".day-bar"))
+        values (.map bars #(day-value (aget runners (.. % -dataset -lane)) (js/Number (.. % -dataset -day))))
+        most (.reduce values #(if (number? %2) (max %1 %2) %1) 1)]
+    (.forEach bars
+              (fn [bar i]
+                (let [v (aget values i)]
+                  (.setProperty (.-style bar) "--p" (if (number? v) (/ v most) 0))
+                  (.toggle (.-classList bar) "empty" (not (number? v)))
+                  ;; Numbers stay out of translation but labels like "not yet" don't
+                  (put-num! (.querySelector bar ".day-val") (if (number? v) (fmt v) ""))
+                  (put! (.querySelector bar ".day-note") (if (number? v) "" v) false))))))
+
+(defn- show-data
+  "Fills the data view and the scoreboard with the picked years' full totals."
+  []
+  (doseq [r runners]
+    (put-num! (:card-total r) (fmt (:total r)))
+    (set! (.. (:bar r) -style -width) (str (* (/ (:total r) best) 100) "%"))
+    (put! (:card-day r) (day-label r 0) false))
+  (set! (.-innerHTML ($ "data-legend"))
+        (.join (.map runners #(str #html [:span {:style (str "--c:" (:shirt (:look %)))}
+                                          (:name %) (when-not (:complete %) " (in progress)")]))
+               ""))
+  (set! (.-innerHTML ($ "days"))
+        ;; Through the last day either picked year has ballots for, which skips
+        ;; days that only a third, longer year had
+        (.join (.map (js/Array.from {:length (.reduce runners #(max %1 (if (:complete %2) (:vote-days %2) (:end-k %2))) 0)})
+                     (fn [_ i]
+                       (str #html [:li.day
+                                   [:span.day-label "Day " (inc i)]
+                                   [:div.day-bars
+                                    (.map runners
+                                          (fn [r lane]
+                                            #html [:div.day-bar {:style (str "--c:" (:shirt (:look r)))
+                                                                 :data-lane lane :data-day (inc i)}
+                                                   [:span.sr-only (:name r) ": "]
+                                                   [:span.day-fill]
+                                                   [:span.day-val.n.notranslate]
+                                                   [:span.day-note]]))]])))
+               ""))
+  ;; Lay the bars out empty first so they grow into place
+  (.-offsetWidth ($ "days"))
+  (update-data))
+
+(defn- set-url-param!
+  "Sets `k` to `v` in the address bar, or removes it when `v` is nil."
+  [k v]
+  (let [url (js/URL. js/location.href)]
+    (if v (.set (.-searchParams url) k v) (.delete (.-searchParams url) k))
+    ;; Some browsers refuse URL changes on file:// pages
+    (try (js/history.replaceState js/history.state "" url) (catch :default _ nil))))
+
+
+(defn- show-view
+  "Switches between the race and the data view, starting either one fresh."
+  [v]
+  (set! view v)
+  (doseq [btn (.querySelectorAll ($ "view-switch") "button")]
+    (.setAttribute btn "aria-pressed" (str (identical? (.. btn -dataset -view) v))))
+  (set! (.-hidden scene) (identical? v "data"))
+  (set! (.-hidden ($ "data")) (identical? v "race"))
+  (build-race))
+
 (defn- build-race []
   (close-cheer)
   (doseq [lane (.querySelectorAll road ".lane")] (.remove lane))
@@ -221,7 +310,9 @@
   (let [ends (.sort (.filter runners #(not (:complete %))) #(- (:end-k %1) (:end-k %2)))]
     (set! chaser (first ends))
     (set! pause-ms (when chaser (* (/ (:end-k chaser) days) race-ms)))
-    (set-text! "note" (.join (.concat [(str "Each runner moves at the pace of their year's daily " unit ". ")]
+    (set-text! "note" (.join (.concat (if (identical? view "race")
+                                        [(str "Each runner moves at the pace of their year's daily " unit ".")]
+                                        [])
                                       (.map ends #(str (:name %) " is still in progress, with data through day "
                                                        (:end-k %) ".")))
                              " ")))
@@ -230,7 +321,8 @@
   (reset)
   (set! (.-hidden overlay) false)
   (set! (.-hidden countdown-el) true)
-  (put! ($ "lead") start-lead true))
+  (put! ($ "lead") idle-lead true)
+  (when (identical? view "data") (show-data)))
 
 (defn- start-countdown []
   (reset)
@@ -386,12 +478,19 @@
   (set-text! "lead" (str (:name chaser) " is waiting on you…"))
   (open-cheer))
 
-(defn- resume []
+(defn- cheer-closed
+  "Continues the race when the cheer modal closed through Keep racing.
+  Dismissing it any other way leaves the runners where they stopped, with
+  the start button back over the track."
+  []
   (when (= mode :paused)
-    (let [now (js/performance.now)]
-      (set! race-start (+ race-start (- now paused-at)))
-      (set! last-frame now)
-      (set! mode :racing))))
+    (if keep-racing
+      (let [now (js/performance.now)]
+        (set! race-start (+ race-start (- now paused-at)))
+        (set! last-frame now)
+        (set! mode :racing))
+      (set! (.-hidden overlay) false)))
+  (set! keep-racing false))
 
 (defn- step [now dt]
   (when (not= mode :paused)
@@ -417,7 +516,7 @@
       (when pause-now (pause now)))))
 
 (defn- frame [now]
-  (step now (min 0.05 (/ (- now last-frame) 1000)))
+  (when (identical? view "race") (step now (min 0.05 (/ (- now last-frame) 1000))))
   (set! last-frame now)
   (js/requestAnimationFrame frame))
 
@@ -435,20 +534,32 @@
                      (when (and (identical? (.-target e) cheer) (.contains (.-classList cheer) "closing"))
                        (.remove (.-classList cheer) "closing")
                        (.close cheer))))
-(.addEventListener cheer "close" resume)
+(.addEventListener cheer "close" cheer-closed)
 (.addEventListener cheer "cancel" (fn [e] (.preventDefault e) (close-cheer)))
 ;; Clicks outside the card land on the dialog element itself (its backdrop)
 (.addEventListener cheer "click" #(when (identical? (.-target %) cheer) (close-cheer)))
 (.addEventListener ($ "cheer-close") "click" close-cheer)
-(.addEventListener ($ "cheer-done") "click" close-cheer)
+(.addEventListener ($ "cheer-done") "click" #(do (set! keep-racing true) (close-cheer)))
 (.addEventListener ($ "cheer-next") "click" show-phrase)
 (.addEventListener ($ "start-btn") "click" start-countdown)
 (.addEventListener ($ "tv-power") "click" turn-on-tv)
 (.addEventListener ($ "again-btn") "click"
                    #(do (start-countdown) (.scrollIntoView scene {:behavior "smooth" :block "center"})))
+(defn- on-view-click [e]
+  (when-let [btn (.closest (.-target e) "[data-view]")]
+    (let [v (.. btn -dataset -view)]
+      (when-not (identical? v view)
+        (set-url-param! "view" (when (identical? v "data") "data"))
+        (show-view v)))))
+(.addEventListener ($ "view-switch") "click" on-view-click)
+(.addEventListener ($ "chart-switch") "click"
+                   (fn [e]
+                     (when-let [btn (.closest (.-target e) "[data-chart]")]
+                       (set! chart (.. btn -dataset -chart))
+                       (update-data))))
 (.observe (js/ResizeObserver. layout) road)
 (layout)
-(build-race)
+(show-view view)
 (when (some? skip-to) (skip-ahead (if (js/isNaN skip-to) 0 (js/Number skip-to))))
 (js/requestAnimationFrame frame)
 (translate/init ($ "lang") ($ "lang-note"))

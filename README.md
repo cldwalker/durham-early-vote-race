@@ -4,7 +4,9 @@ This is a fun little webpage to compare early voting years as an animated race. 
 
 ## Sharing with Others
 
-For Spanish speaking folks, the website automatically translates with https://tagaholic.me/durham-early-vote-race?lang=es. To skip the racing and focus on useful links, https://tagaholic.me/durham-early-vote-race/#early-voting-links.
+* https://tagaholic.me/durham-early-vote-race?lang=es - Shows website in Spanish by default
+* https://tagaholic.me/durham-early-vote-race?view=data - Shows data by default
+* https://tagaholic.me/durham-early-vote-race/#early-voting-links - Jumps right to early voting links
 
 ## Development
 
