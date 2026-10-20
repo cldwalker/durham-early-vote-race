@@ -1,0 +1,8 @@
+{:paths ["script"]
+ :tasks
+ {download-year {:exec-fn enrs/download-year}
+  show-year {:depends [download-year]
+             :exec-fn enrs/show-year}
+  add-year {:depends [download-year]
+            :exec-fn enrs/add-year}
+  total-counts {:exec-fn enrs/total-counts}}}

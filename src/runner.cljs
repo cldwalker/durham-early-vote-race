@@ -5,12 +5,12 @@
 (def viewbox {:x -34 :y -58 :w 68 :h 98})
 
 (def looks
-  [{:shirt "#2563eb" :shorts "#1e3a8a" :skin "#f0c08a" :hair "#4a2c17"
+  [{:shirt "#0284c7" :text "#0369a1" :shorts "#0c4a6e" :skin "#f0c08a" :hair "#4a2c17"
     :shoe "#111827" :sole "#f8fafc" :band "#facc15" :ponytail false}
-   {:shirt "#db2777" :shorts "#3b0764" :skin "#9a5b34" :hair "#1c1310"
-    :shoe "#f8fafc" :sole "#db2777" :band nil :ponytail true}
+   {:shirt "#7c3aed" :text "#7c3aed" :shorts "#2e1065" :skin "#9a5b34" :hair "#1c1310"
+    :shoe "#f8fafc" :sole "#7c3aed" :band nil :ponytail true}
    ;; The runner a visitor controls
-   {:shirt "#16a34a" :shorts "#14532d" :skin "#c68642" :hair "#5a3214"
+   {:shirt "#16a34a" :text "#15803d" :shorts "#14532d" :skin "#c68642" :hair "#5a3214"
     :shoe "#111827" :sole "#facc15" :band "#f8fafc" :ponytail true}])
 
 (defn- shade [hex amount]

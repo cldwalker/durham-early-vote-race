@@ -27,6 +27,9 @@ All of the JS is written with https://github.com/squint-cljs/squint. This is the
 
 cljs code should lint with [clj-kondo](https://github.com/clj-kondo/clj-kondo) - `clj-kondo --lint src`.
 
+There are some dev tasks that use https://github.com/babashka/babashka. Run `bb tasks` to see what's
+available.
+
 ## Contributing
 
 I'm not looking for major contributions as this is mostly done. Contributions like more early voting links, adding your line to voter-phrases.csv and some cool art are welcome.

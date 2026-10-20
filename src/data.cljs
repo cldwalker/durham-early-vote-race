@@ -4,26 +4,27 @@
   (.filter (.map (.split text #"\r?\n") #(.trim %)) #(not (identical? "" %))))
 
 (defn parse-counts
-  "Parses early-vote-counts.csv: a header row of years followed by one
-  comma-delimited row per day. A year still in progress has empty or missing
-  cells for the days that haven't happened yet, and a year with fewer early
-  voting days has trailing counts of 0. Returns `{:years :days}`, where each
-  year's `:data-days` is how many days it has data for and `:vote-days` is how
-  many days it had early voting."
+  "Parses early-vote-counts.csv: a header row of `year,day1,day2,...` followed
+  by one row per year of its daily counts. The longest row sets how many days
+  a race has, so a year with fewer early voting days has trailing counts of 0
+  and a shorter row is a year still in progress. Returns `{:years :days}`,
+  where each year's `:data-days` is how many days it has data for and
+  `:vote-days` is how many days it had early voting."
   [text]
-  (let [all (.map (lines text) (fn [l] (.map (.split l ",") #(.trim %))))
-        rows (.slice all 1)
-        days (count rows)]
+  (let [rows (.map (.slice (lines text) 1)
+                   (fn [l] (.map (.split l ",") #(.trim %))))
+        days (.reduce rows #(max %1 (dec (count %2))) 0)]
     {:days days
-     :years (.map (first all)
-                  (fn [year i]
-                    ;; JS truthiness: an empty or missing cell is falsy
-                    (let [data-days (inc (.findLastIndex rows #(aget % i)))
-                          vote-days (inc (.findLastIndex rows #(pos? (js/Number (aget % i)))))
-                          sums (.reduce (.slice rows 0 data-days)
-                                        (fn [acc row] (.concat acc (+ (last acc) (js/Number (or (aget row i) 0)))))
+     :years (.map rows
+                  (fn [row]
+                    ;; JS truthiness: an empty cell is falsy
+                    (let [cells (.slice row 1)
+                          data-days (inc (.findLastIndex cells identity))
+                          vote-days (inc (.findLastIndex cells #(pos? (js/Number %))))
+                          sums (.reduce (.slice cells 0 data-days)
+                                        (fn [acc n] (.concat acc (+ (last acc) (js/Number n))))
                                         [0])]
-                      {:name year :data-days data-days :vote-days vote-days
+                      {:name (first row) :data-days data-days :vote-days vote-days
                        :complete (== data-days days) :cumulative sums})))}))
 
 (defn parse-phrases

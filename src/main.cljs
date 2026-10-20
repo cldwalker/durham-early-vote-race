@@ -118,42 +118,50 @@
 
 (declare build-race)
 
-(defn- pick-year
-  "Puts year `i` in `lane`. Picking the year that's in the other lane swaps the two lanes."
-  [lane i]
-  (when-not (== (aget picked lane) i)
-    (let [other (- 1 lane)]
-      (when (== (aget picked other) i) (aset picked other (aget picked lane)))
-      (aset picked lane i)
-      (build-race))))
+(defn- paint!
+  "Sets `look`'s colors on `node`: its shirt as `--c` and, for text that has
+  to stay readable on white or under white, a darker `--c-text`"
+  [node look]
+  (.setProperty (.-style node) "--c" (:shirt look))
+  (.setProperty (.-style node) "--c-text" (:text look)))
 
-(def pickers
-  (.map [0 1]
-        (fn [lane]
-          (let [group (el "div" "pick" "")
-                chips (.map years
-                            (fn [{:keys [name complete]} i]
-                              (let [chip (el "button" "chip" name)]
-                                (set! (.-type chip) "button")
-                                (when-not complete (.append chip (el "small" "" "in progress")))
-                                (.addEventListener chip "click" #(pick-year lane i))
-                                (.append group chip)
-                                chip)))]
-            (.setProperty (.-style group) "--c" (:shirt (aget looks lane)))
-            (.setAttribute group "role" "group")
-            (.setAttribute group "aria-label" (str "Lane " (inc lane) " year"))
-            {:group group :chips chips}))))
-(.append ($ "matchup") (:group (aget pickers 0)) (el "span" "vs" "vs") (:group (aget pickers 1)))
+(defn- pick-year
+  "Puts year `i` in the first lane so the second lane's pinned year, at first
+  the one in progress, stays put. Picking a year that's already racing swaps
+  lanes, which pins the first lane's year."
+  [i]
+  (if (.includes picked i) (.reverse picked) (aset picked 0 i))
+  (build-race))
+
+(def picker-chips
+  (let [group (el "div" "pick" "")]
+    ;; Hovering a year previews it in the first lane's color, where it'd go
+    (paint! group (aget looks 0))
+    (.setAttribute group "role" "group")
+    (.setAttribute group "aria-label" "Years racing")
+    (.before (.querySelector ($ "matchup") ".pick-hint") group)
+    (.map years
+          (fn [{:keys [name complete]} i]
+            (let [chip (el "button" "chip" name)]
+              (set! (.-type chip) "button")
+              (when-not complete (.append chip (el "small" "" "in progress")))
+              (.addEventListener chip "click" #(pick-year i))
+              (.append group chip)
+              chip)))))
 
 (defn- render-pickers []
-  (.forEach pickers
-    (fn [{:keys [chips]} lane]
-      (.forEach chips
-        (fn [chip i]
-          (let [theirs (== i (aget picked (- 1 lane)))]
-            (.setAttribute chip "aria-pressed" (str (== i (aget picked lane))))
-            (.toggle (.-classList chip) "taken" theirs)
-            (set! (.-title chip) (if theirs "Swap lanes" ""))))))))
+  (.forEach picker-chips
+    (fn [chip i]
+      (let [lane (.indexOf picked i)
+            style (.-style chip)]
+        (.setAttribute chip "aria-pressed" (str (not (neg? lane))))
+        (if (neg? lane)
+          (do (.removeProperty style "--c") (.removeProperty style "--c-text"))
+          (paint! chip (aget looks lane)))
+        (.toggle (.-classList chip) "pinned" (== lane 1))
+        (set! (.-title chip) (case lane 0 "Pin this year" 1 "Pinned" "")))))
+  (put-num! ($ "hint-pinned") (:name (aget years (aget picked 1))))
+  (put-num! ($ "hint-other") (:name (aget years (aget picked 0)))))
 
 (defn- make-lane
   "Adds a lane to the track with a runner wearing `look` and `bib`, labelled
@@ -161,7 +169,7 @@
   [name look bib]
   (let [fig (create-runner look bib)
         lane (el "div" "lane" "")]
-    (.setProperty (.-style lane) "--c" (:shirt look))
+    (paint! lane look)
     (set! (.-innerHTML lane) (str #html [:<> [:div.bubble.notranslate [:b name] [:span.n {:data-n "0"}]] [:div.runner]]))
     (.append (.querySelector lane ".runner") (:el fig))
     (.append road lane)
@@ -173,7 +181,7 @@
 (defn- make-runner [{:keys [name complete data-days vote-days cumulative]} slot]
   (let [look (aget looks slot)
         card (el "div" "card" "")]
-    (.setProperty (.-style card) "--c" (:shirt look))
+    (paint! card look)
     (set! (.-innerHTML card)
           (str #html [:<>
                       [:div.card-top [:span.swatch] [:span.card-name name] [:span.card-day]]
