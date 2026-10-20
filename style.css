@@ -118,9 +118,11 @@ h1 {
 }
 .pick {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 4px;
   padding: 4px;
-  border: 2px solid var(--c);
+  border: 2px solid color-mix(in srgb, var(--muted) 35%, transparent);
   border-radius: 999px;
   background: var(--card);
 }
@@ -148,19 +150,20 @@ h1 {
 }
 .chip small { font-size: 10px; font-weight: 700; letter-spacing: .02em; opacity: .7; }
 .chip:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
-.chip[aria-pressed="true"] { background: var(--c); color: #fff; cursor: default; }
+.chip[aria-pressed="true"] { background: var(--c-text); color: #fff; }
 .chip[aria-pressed="true"] small { opacity: .9; }
-/* The other lane's year: picking it swaps lanes */
-.chip.taken { color: var(--muted); }
-.chip.taken::after { content: "⇄"; position: absolute; top: 1px; right: 7px; font-size: 11px; }
-.chip:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
-.vs {
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+/* The second lane's year stays put while other years are tried against it */
+.chip.pinned::after { content: "📌"; position: absolute; top: -6px; right: -2px; font-size: 14px; }
+.pick-hint {
+  flex-basis: 100%;
+  margin: 0;
   color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
 }
+.pick-hint .n { color: var(--ink); font-weight: 800; }
+.chip:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 /* Scoreboard */
 .board {
@@ -189,7 +192,7 @@ h1 {
   padding: 2px 9px;
   border-radius: 99px;
   background: color-mix(in srgb, var(--c) 14%, transparent);
-  color: var(--c);
+  color: var(--c-text);
   font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -423,7 +426,7 @@ h1 {
   box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
   will-change: transform;
 }
-.bubble b { color: var(--c); }
+.bubble b { color: var(--c-text); }
 .bubble span { font-weight: 700; font-variant-numeric: tabular-nums; }
 .bubble::after {
   content: "";
@@ -434,7 +437,7 @@ h1 {
   border: 6px solid transparent;
   border-top-color: var(--c);
 }
-.bubble.won { background: var(--c); color: #fff; }
+.bubble.won { background: var(--c-text); color: #fff; }
 .bubble.won b { color: #fff; }
 .bubble.won::before { content: "🏆"; }
 
@@ -726,6 +729,14 @@ h1 {
 @media (max-width: 560px) {
   .page { padding-top: 16px; }
   .board { padding: 12px; }
+  /* A row of years runs off a phone, so each lane's years wrap in a grid */
+  .pick {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    border-radius: 24px;
+  }
+  .chip { min-width: 0; padding: 4px 6px; }
 }
 
 /* Bonus clip: a retro TV that has to be switched on */
