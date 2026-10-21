@@ -6,6 +6,9 @@ This is a fun little webpage to compare early voting years as an animated race. 
 
 * https://tagaholic.me/durham-early-vote-race?lang=es - Shows website in Spanish by default
 * https://tagaholic.me/durham-early-vote-race?view=data - Shows data by default
+* https://tagaholic.me/durham-early-vote-race?year2=2016 - Compares current year against 2016
+* https://tagaholic.me/durham-early-vote-race?year1=2024&year2=2016 - Compares 2024 against 2016
+* https://tagaholic.me/durham-early-vote-race?view=data&data-type=total - Shows the running total in the data view
 * https://tagaholic.me/durham-early-vote-race/#early-voting-links - Jumps right to early voting links
 
 ## Development

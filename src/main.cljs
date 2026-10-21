@@ -21,9 +21,10 @@
 ;; Debug/screenshot aid: index.html?at=6.5 loads with the race already 6.5s in
 (def skip-to (.get (js/URLSearchParams. js/location.search) "at"))
 ;; "race" or "data", which shows the picked years' ballots as bar charts
-(def view (if (identical? (.get (js/URLSearchParams. js/location.search) "view") "data") "data" "race"))
-;; "daily" ballots or their running "total" in the data view
-(def chart "daily")
+(def view (if (= (.get (js/URLSearchParams. js/location.search) "view") "data") "data" "race"))
+;; "daily" ballots or their running "total" in the data view, which
+;; index.html?view=data&data-type=total starts on
+(def chart (if (= (.get (js/URLSearchParams. js/location.search) "data-type") "total") "total" "daily"))
 
 (defn- $ [id] (js/document.getElementById id))
 (def number-format (js/Intl.NumberFormat. "en-US"))
@@ -80,9 +81,19 @@
 
 (set-text! "subtitle" "Pick two years of early voting and see which year wins the ballot race!")
 
-;; Indexes into `years` of the year running in each lane
+;; Indexes into `years` of the year running in each lane. index.html?year2=2016
+;; races 2016 in the first lane and ?year1=2024 pins 2024 in the second lane
+;; instead of 2026. A missing, unknown or repeated year falls back to its default
 (def picked
-  (let [found (.map default-years (fn [y] (.findIndex years #(identical? (:name %) y))))]
+  (let [params (js/URLSearchParams. js/location.search)
+        index-of (fn [y] (.findIndex years #(identical? (:name %) y)))
+        lane1 (let [i (index-of (.get params "year1"))]
+                (if (neg? i) (index-of (last default-years)) i))
+        lane0 (let [i (index-of (.get params "year2"))]
+                (cond (and (not (neg? i)) (not= i lane1)) i
+                      (not= (index-of (first default-years)) lane1) (index-of (first default-years))
+                      :else (index-of (last default-years))))
+        found [lane0 lane1]]
     (if (or (.includes found -1) (== (first found) (last found)))
       [(max 0 (- (count years) 2)) (dec (count years))]
       found)))
@@ -128,9 +139,13 @@
 (defn- pick-year
   "Puts year `i` in the first lane so the second lane's pinned year, at first
   the one in progress, stays put. Picking a year that's already racing swaps
-  lanes, which pins the first lane's year."
+  lanes, which pins the first lane's year. The address bar's year2 and year1
+  follow the first and second lanes, leaving out either one that's its default."
   [i]
   (if (.includes picked i) (.reverse picked) (aset picked 0 i))
+  (let [[year2 year1] (.map picked #(:name (aget years %)))]
+    (set-url-param! "year2" (when-not (identical? year2 (first default-years)) year2))
+    (set-url-param! "year1" (when-not (identical? year1 (last default-years)) year1)))
   (build-race))
 
 (def picker-chips
@@ -261,14 +276,14 @@
   [{:keys [cumulative end-k vote-days]} day]
   (cond (> day end-k) "not yet"
         (> day vote-days) "no early voting"
-        :else (if (identical? chart "total")
+        :else (if (= chart "total")
                 (aget cumulative day)
                 (- (aget cumulative day) (aget cumulative (dec day))))))
 
 (defn- update-data
   "Sizes and labels the data view's bars for the current `chart`."
   []
-  (set-text! "data-title" (if (identical? chart "total") "Running total of ballots" "Ballots per day"))
+  (set-text! "data-title" (if (= chart "total") "Running total of ballots" "Ballots per day"))
   (doseq [btn (.querySelectorAll ($ "chart-switch") "button")]
     (.setAttribute btn "aria-pressed" (str (identical? (.. btn -dataset -chart) chart))))
   (let [bars (js/Array.from (.querySelectorAll ($ "days") ".day-bar"))
@@ -330,8 +345,8 @@
   (set! view v)
   (doseq [btn (.querySelectorAll ($ "view-switch") "button")]
     (.setAttribute btn "aria-pressed" (str (identical? (.. btn -dataset -view) v))))
-  (set! (.-hidden scene) (identical? v "data"))
-  (set! (.-hidden ($ "data")) (identical? v "race"))
+  (set! (.-hidden scene) (= v "data"))
+  (set! (.-hidden ($ "data")) (= v "race"))
   (build-race))
 
 (defn- build-race []
@@ -345,7 +360,7 @@
   (let [ends (.sort (.filter runners #(not (:complete %))) #(- (:end-k %1) (:end-k %2)))]
     (set! chaser (first ends))
     (set! pause-ms (when chaser (* (/ (:end-k chaser) days) race-ms)))
-    (set-text! "note" (.join (.concat (if (identical? view "race")
+    (set-text! "note" (.join (.concat (if (= view "race")
                                         [(str "Each runner moves at the pace of their year's daily " unit ".")]
                                         [])
                                       (.map ends #(str (:name %) " is still in progress, with data through day "
@@ -357,7 +372,7 @@
   (set! (.-hidden overlay) false)
   (set! (.-hidden countdown-el) true)
   (put! ($ "lead") idle-lead true)
-  (when (identical? view "data") (show-data)))
+  (when (= view "data") (show-data)))
 
 (defn- start-countdown []
   (reset)
@@ -655,7 +670,7 @@
       (when pause-now (pause now)))))
 
 (defn- frame [now]
-  (when (identical? view "race") (step now (min 0.05 (/ (- now last-frame) 1000))))
+  (when (= view "race") (step now (min 0.05 (/ (- now last-frame) 1000))))
   (set! last-frame now)
   (js/requestAnimationFrame frame))
 
@@ -690,7 +705,7 @@
                                 (not (.-repeat e))
                                 (.includes ["ArrowRight" "ArrowLeft" " "] (.-key e))
                                 ;; Space still presses a focused button like Race again
-                                (not (and (identical? (.-key e) " ") (.closest (.-target e) "button"))))
+                                (not (and (= (.-key e) " ") (.closest (.-target e) "button"))))
                        ;; Keep the keys from scrolling the page or pressing a
                        ;; focused button mid-race
                        (.preventDefault e)
@@ -708,13 +723,15 @@
   (when-let [btn (.closest (.-target e) "[data-view]")]
     (let [v (.. btn -dataset -view)]
       (when-not (identical? v view)
-        (set-url-param! "view" (when (identical? v "data") "data"))
+        (set-url-param! "view" (when (= v "data") "data"))
+        (set-url-param! "data-type" (when (and (= v "data") (= chart "total")) "total"))
         (show-view v)))))
 (.addEventListener ($ "view-switch") "click" on-view-click)
 (.addEventListener ($ "chart-switch") "click"
                    (fn [e]
                      (when-let [btn (.closest (.-target e) "[data-chart]")]
                        (set! chart (.. btn -dataset -chart))
+                       (set-url-param! "data-type" (when (= chart "total") "total"))
                        (update-data))))
 (.observe (js/ResizeObserver. layout) road)
 (layout)

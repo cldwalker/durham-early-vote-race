@@ -67,7 +67,7 @@
    (fn [resolve reject]
      (letfn [(pick [tries]
                (cond (translated?) (resolve)
-                     (not (identical? wanted "es")) (resolve)
+                     (not (= wanted "es")) (resolve)
                      (> tries 20) (reject (js/Error. "Translator didn't respond"))
                      :else (do (when (zero? (mod tries 3))
                                  (set! (.-value combo) "es")
@@ -81,7 +81,7 @@
   so toggling doesn't pile up Back button steps."
   [lang]
   (let [url (js/URL. js/location.href)]
-    (if (identical? lang "es")
+    (if (= lang "es")
       (.set (.-searchParams url) "lang" "es")
       (.delete (.-searchParams url) "lang"))
     ;; Some browsers refuse URL changes on file:// pages
@@ -105,7 +105,7 @@
   "Wires the EN/ES `toggle` button and the `note` element that reports
   progress and failures."
   [toggle note]
-  (let [render (fn [] (.setAttribute toggle "aria-checked" (str (identical? wanted "es"))))
+  (let [render (fn [] (.setAttribute toggle "aria-checked" (str (= wanted "es"))))
         say (fn [text ms]
               (js/clearTimeout note-timer)
               (set! (.-textContent note) text)
@@ -114,7 +114,7 @@
                     (set! wanted lang)
                     (render)
                     (show-lang-in-url! lang)
-                    (if (identical? lang "es")
+                    (if (= lang "es")
                       (do (.add (.-classList toggle) "busy")
                           (say "Traduciendo…" nil)
                           (-> (load-widget)
@@ -129,8 +129,8 @@
                               (.finally #(.remove (.-classList toggle) "busy"))))
                       (do (say "" nil)
                           (when (translated?) (restore-english)))))]
-    (.addEventListener toggle "click" #(switch-to (if (identical? wanted "es") "en" "es")))
+    (.addEventListener toggle "click" #(switch-to (if (= wanted "es") "en" "es")))
     (let [lang (.get (js/URLSearchParams. js/location.search) "lang")]
-      (cond (identical? lang "es") (switch-to "es")
-            (identical? lang "en") (forget-spanish!)
+      (cond (= lang "es") (switch-to "es")
+            (= lang "en") (forget-spanish!)
             (spanish-cookie?) (switch-to "es")))))
